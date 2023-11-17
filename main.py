@@ -1,14 +1,19 @@
 import json
 import random
-from typing import List, Dict, Tuple, Any
+from typing import List, Dict, Tuple
 
 import matplotlib.pyplot as plt
 import numpy
 from deap import base, creator, tools, algorithms
 from deap.base import Toolbox
+from deap.tools import Logbook
 
-LOW, UP = -1, 41
+LOW, UP = -1, 42
 CONFIG_FILE_NAME = "config.json"
+
+
+def fitness_func(_x: int) -> float:
+    return -.1 * _x ** 2 + 4 * _x + 7
 
 
 def load_config() -> Dict[str, float]:
@@ -18,7 +23,7 @@ def load_config() -> Dict[str, float]:
 
 def evaluate(_individual: List[int]) -> Tuple[float]:
     x = _individual[0]
-    return -.1 * x ** 2 + 4 * x + 7,
+    return fitness_func(x),
 
 
 def init_deap():
@@ -29,19 +34,28 @@ def init_deap():
 def init_toolbox(_mutation_rate: float) -> Toolbox:
     _toolbox = base.Toolbox()
     _toolbox.register("attr_generator", random.randint, LOW, UP)
-    _toolbox.register("individual", tools.initRepeat, creator.Individual, _toolbox.attr_generator, 100)
+    _toolbox.register("individual", tools.initRepeat, creator.Individual, _toolbox.attr_generator, 2)
     _toolbox.register("population", tools.initRepeat, list, _toolbox.individual)
     _toolbox.register("evaluate", evaluate)
-    # simple crossover
     _toolbox.register("mate", tools.cxTwoPoint)
-    # uniform mutation
     _toolbox.register("mutate", tools.mutUniformInt, low=LOW, up=UP, indpb=_mutation_rate)
-    # roulette selection
     _toolbox.register("select", tools.selRoulette)
     return _toolbox
 
 
-def plot_stats(_stats: List[Dict[str, Any]]):
+def plot_fitness_func(low: int, high: int):
+    x_vals = range(low, high)
+    y_vals = [fitness_func(x) for x in x_vals]
+    plt.plot(x_vals, y_vals, label="Fitness function: $-0.1x^2 + 4x + 7$")
+    plt.title("Fitness function")
+    plt.xlabel("x")
+    plt.ylabel("f(x)")
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+
+def plot_stats(_stats: Logbook):
     gen = [s["gen"] for s in _stats]
     avg = [s["avg"] for s in _stats]
     std = [s["std"] for s in _stats]
@@ -88,3 +102,4 @@ if __name__ == "__main__":
     )
 
     plot_stats(logbook)
+    plot_fitness_func(LOW, UP)
