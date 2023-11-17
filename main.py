@@ -7,6 +7,7 @@ import numpy
 from deap import base, creator, tools, algorithms
 from deap.base import Toolbox
 
+LOW, UP = -1, 41
 CONFIG_FILE_NAME = "config.json"
 
 
@@ -15,7 +16,7 @@ def load_config() -> Dict[str, float]:
         return json.load(config_file)
 
 
-def evaluate(_individual: List[int]) -> Tuple[float | int | Any]:
+def evaluate(_individual: List[int]) -> Tuple[float]:
     x = _individual[0]
     return -.1 * x ** 2 + 4 * x + 7,
 
@@ -25,20 +26,18 @@ def init_deap():
     creator.create("Individual", list, fitness=creator.FitnessMax)
 
 
-def init_toolbox(_crossover_rate: float, _mutation_rate: float) -> Toolbox:
+def init_toolbox(_mutation_rate: float) -> Toolbox:
     _toolbox = base.Toolbox()
-    _toolbox.register("attr_generator", random.randint, -1, 41)
+    _toolbox.register("attr_generator", random.randint, LOW, UP)
     _toolbox.register("individual", tools.initRepeat, creator.Individual, _toolbox.attr_generator, 100)
     _toolbox.register("population", tools.initRepeat, list, _toolbox.individual)
     _toolbox.register("evaluate", evaluate)
     # simple crossover
     _toolbox.register("mate", tools.cxTwoPoint)
     # uniform mutation
-    _toolbox.register("mutate", tools.mutUniformInt, low=-1, up=41, indpb=.2)
+    _toolbox.register("mutate", tools.mutUniformInt, low=LOW, up=UP, indpb=_mutation_rate)
     # roulette selection
     _toolbox.register("select", tools.selRoulette)
-    _toolbox.mate.rate = _crossover_rate
-    _toolbox.mutate.probability = _mutation_rate
     return _toolbox
 
 
@@ -49,7 +48,7 @@ def plot_stats(_stats: List[Dict[str, Any]]):
     min_fit = [s["min"] for s in _stats]
     max_fit = [s["max"] for s in _stats]
 
-    plt.figure(figsize=(10, 5))
+    plt.figure(figsize=(20, 10))
     plt.plot(gen, avg, label="Average fitness")
     plt.plot(gen, min_fit, label="Minimum fitness")
     plt.plot(gen, max_fit, label="Maximum fitness")
@@ -70,7 +69,7 @@ if __name__ == "__main__":
     config = load_config()
     num_generations, population_size, crossover_rate, mutation_rate = config.values()
     init_deap()
-    toolbox = init_toolbox(crossover_rate, mutation_rate)
+    toolbox = init_toolbox(mutation_rate)
     population: List[List[int]] = toolbox.population(n=population_size)
 
     stats = tools.Statistics(lambda ind: ind.fitness.values)
